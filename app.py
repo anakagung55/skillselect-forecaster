@@ -66,7 +66,7 @@ page = st.sidebar.radio("Navigation", [
     "Project Overview", 
     "🏆 Top Market Leaderboard", 
     "🔮 Specific Forecast & Trends"
-])
+], key='page')
 
 # ==========================================
 # PAGE 1: PROJECT OVERVIEW
@@ -127,6 +127,48 @@ if page == "Project Overview":
     step1, step2 = st.columns(2)
     step1.success("**1. Latih model otomatis**\n\nModel dilatih secara otomatis dari data historis untuk membuat prediksi sederhana.")
     step2.success("**2. Visualisasi yang mudah**\n\nGrafik interaktif membantu Anda memahami tren tanpa harus mengolah data manual.")
+
+    st.write("---")
+    st.subheader("💡 Insight Cepat & Tindakan")
+    if not df.empty:
+        # 1) Top 5 pada periode terbaru
+        latest_date = df['ds'].max()
+        top_latest = df[df['ds'] == latest_date].groupby('occupation')['count_eois'].sum().nlargest(5)
+        st.markdown(f"**Top 5 pekerjaan pada periode terbaru ({latest_date.strftime('%B %Y')}):**")
+        st.table(top_latest.reset_index().rename(columns={'count_eois':'Jumlah Pendaftar'}))
+
+        # 2) Pertumbuhan: rata-rata 3 bulan terakhir vs 3 bulan sebelumnya
+        df_monthly = df.groupby([pd.Grouper(key='ds', freq='MS'), 'occupation'])['count_eois'].sum().reset_index()
+        months = sorted(df_monthly['ds'].dt.to_period('M').unique()) if not df_monthly.empty else []
+        if len(months) >= 6:
+            last3 = months[-3:]
+            prev3 = months[-6:-3]
+            last_avg = df_monthly[df_monthly['ds'].dt.to_period('M').isin(last3)].groupby('occupation')['count_eois'].mean()
+            prev_avg = df_monthly[df_monthly['ds'].dt.to_period('M').isin(prev3)].groupby('occupation')['count_eois'].mean()
+            growth = ((last_avg - prev_avg) / prev_avg.replace({0: pd.NA})) * 100
+            growth = growth.dropna().sort_values(ascending=False).head(5).reset_index()
+            growth.columns = ['Pekerjaan', 'Pertumbuhan (%)']
+            growth['Pertumbuhan (%)'] = growth['Pertumbuhan (%)'].map(lambda x: f"{x:.1f}%")
+            st.markdown("**Pekerjaan dengan pertumbuhan tertinggi (rata-rata 3 bulan terakhir vs 3 bulan sebelumnya):**")
+            st.table(growth)
+        else:
+            st.info("Butuh lebih banyak data bulanan (≥6 bulan) untuk menghitung tren pertumbuhan yang andal.")
+
+        st.write("---")
+        jump_col1, jump_col2 = st.columns([2,2])
+        with jump_col1:
+            if st.button("➡️ Lihat Peringkat Pekerjaan Teratas"):
+                st.session_state['page'] = '🏆 Top Market Leaderboard'
+                st.experimental_rerun()
+        with jump_col2:
+            occupations = sorted(df['occupation'].unique())
+            sel_jump = st.selectbox("Pilih pekerjaan untuk langsung ke Prediksi:", occupations, key='jump_occ')
+            if st.button("➡️ Pergi ke Prediksi untuk Pekerjaan Terpilih"):
+                st.session_state['selected_occ'] = sel_jump
+                st.session_state['page'] = '🔮 Specific Forecast & Trends'
+                st.experimental_rerun()
+    else:
+        st.info("Tidak ada data. Tambahkan `df_master.parquet` atau file csv untuk melihat insight.")
 
 
 # ==========================================
@@ -226,7 +268,7 @@ elif page == "🔮 Specific Forecast & Trends":
     else:
         # 1. PILIH PEKERJAAN DARI DATA (BUKAN DARI FOLDER MODEL)
         available_occ = sorted(df['occupation'].unique())
-        selected_occ = st.selectbox("Pilih pekerjaan yang ingin Anda lihat (contoh: Software Engineer):", available_occ)
+        selected_occ = st.selectbox("Pilih pekerjaan yang ingin Anda lihat (contoh: Software Engineer):", available_occ, key='selected_occ')
         
         # Filter Data Khusus Pekerjaan Terpilih
         df_occ = df[df['occupation'] == selected_occ].copy()

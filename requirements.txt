@@ -1,0 +1,8 @@
+streamlit
+pandas
+prophet
+joblib
+openpyxl
+matplotlib
+plotly
+pyarrow

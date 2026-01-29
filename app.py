@@ -157,13 +157,9 @@ if page == "Project Overview":
         st.write("---")
         jump_col1, jump_col2 = st.columns([2,2])
         with jump_col1:
-            if st.button("➡️ Lihat Peringkat Pekerjaan Teratas"):
-                st.session_state['page'] = '🏆 Top Market Leaderboard'
-                st.experimental_rerun()
+            st.button("➡️ Lihat Peringkat Pekerjaan Teratas", on_click=_go_to_leaderboard)
         with jump_col2:
-            if st.button("➡️ Pergi ke Halaman Prediksi"):
-                st.session_state['page'] = '🔮 Specific Forecast & Trends'
-                st.experimental_rerun()
+            st.button("➡️ Pergi ke Halaman Prediksi", on_click=_go_to_forecast)
     else:
         st.info("Tidak ada data. Tambahkan `df_master.parquet` atau file csv untuk melihat insight.")
 

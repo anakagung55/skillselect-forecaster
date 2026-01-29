@@ -68,6 +68,13 @@ page = st.sidebar.radio("Navigation", [
     "🔮 Specific Forecast & Trends"
 ], key='page')
 
+# Callbacks for simple button navigation (use on_click to avoid session_state write errors)
+def _go_to_leaderboard():
+    st.session_state['page'] = '🏆 Top Market Leaderboard'
+
+def _go_to_forecast():
+    st.session_state['page'] = '🔮 Specific Forecast & Trends'
+
 # ==========================================
 # PAGE 1: PROJECT OVERVIEW
 # ==========================================

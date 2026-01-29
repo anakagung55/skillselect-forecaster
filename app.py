@@ -161,10 +161,7 @@ if page == "Project Overview":
                 st.session_state['page'] = '🏆 Top Market Leaderboard'
                 st.experimental_rerun()
         with jump_col2:
-            occupations = sorted(df['occupation'].unique())
-            sel_jump = st.selectbox("Pilih pekerjaan untuk langsung ke Prediksi:", occupations, key='jump_occ')
-            if st.button("➡️ Pergi ke Prediksi untuk Pekerjaan Terpilih"):
-                st.session_state['selected_occ'] = sel_jump
+            if st.button("➡️ Pergi ke Halaman Prediksi"):
                 st.session_state['page'] = '🔮 Specific Forecast & Trends'
                 st.experimental_rerun()
     else:

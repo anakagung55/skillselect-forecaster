@@ -72,12 +72,14 @@ page = st.sidebar.radio("Navigation", [
 # PAGE 1: PROJECT OVERVIEW
 # ==========================================
 if page == "Project Overview":
-    st.title("🚀 SkillSelect Intelligence Dashboard")
-    st.subheader("Advanced EOI Analytics & Predictive Modeling")
+    st.title("🚀 SkillSelect — Dashboard Tren Pendaftaran Visa (EOI)")
+    st.subheader("Dashboard interaktif untuk melihat tren pendaftaran dan prediksi (mudah dipakai)")
     
     st.markdown("""
-    Platform ini dirancang untuk mengotomatisasi **Data Engineering** dan memberikan prediksi akurat menggunakan **Machine Learning (Prophet)**. 
-    Kami membantu pengambil kebijakan dan kandidat untuk memahami tren pendaftaran visa Australia secara real-time.
+    Aplikasi ini membantu pengguna yang bukan ahli data untuk memahami pendaftaran visa (EOI).
+    - Lihat jumlah pendaftar per pekerjaan, bandingkan antar periode, dan pahami tren naik/turun.
+    - Dapatkan perkiraan 6 bulan ke depan yang berguna untuk perencanaan.
+    Cukup pilih pekerjaan dan filter, lalu lihat grafik dan ringkasan yang mudah dimengerti.
     """)
 
     st.write("---")
@@ -86,17 +88,17 @@ if page == "Project Overview":
     with col1:
         unique_occ = len(df['occupation'].unique()) if not df.empty else 0
         st.markdown(f"<h3 style='text-align: center; color: #4CAF50;'>{unique_occ}</h3>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center;'><b>Occupations Tracked</b></p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center;'><b>Jumlah Pekerjaan</b></p>", unsafe_allow_html=True)
     with col2:
         st.markdown(f"<h3 style='text-align: center; color: #2196F3;'>Jan 24 - Dec 25</h3>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center;'><b>Data Range Period</b></p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center;'><b>Periode Data</b></p>", unsafe_allow_html=True)
     with col3:
         total_eoi = int(df['count_eois'].sum()) if not df.empty else 0
         st.markdown(f"<h3 style='text-align: center; color: #FF9800;'>{total_eoi:,}</h3>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center;'><b>Total Historical EOIs</b></p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center;'><b>Total Pendaftaran (EOI)</b></p>", unsafe_allow_html=True)
     with col4:
         st.markdown(f"<h3 style='text-align: center; color: #9C27B0;'>95%</h3>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center;'><b>Confidence Interval</b></p>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center;'><b>Kepercayaan Model</b></p>", unsafe_allow_html=True)
     
     st.write("---")
 
@@ -107,48 +109,48 @@ if page == "Project Overview":
         if not df.empty:
             trend_data = df.groupby('ds')['count_eois'].sum().reset_index()
             st.line_chart(trend_data.set_index('ds'))
-            st.caption("Grafik akumulasi seluruh pendaftaran (EOI) dari semua sektor pekerjaan secara historis.")
+            st.caption("Grafik ini menunjukkan jumlah pendaftaran EOI setiap periode—berguna untuk melihat pola naik/turun.")
 
     with col_right:
-        st.subheader("🎯 Project Purpose")
-        with st.expander("Kenapa Platform Ini Penting?", expanded=True):
+        st.subheader("🎯 Tujuan Aplikasi")
+        with st.expander("Kenapa ini berguna?", expanded=True):
             st.write("""
-            1. **Data Centralization**: Menggabungkan file mentah SkillSelect menjadi satu Database terpusat.
-            2. **Forecasting Accuracy**: Menggunakan algoritma **Prophet** untuk menangani pola musiman tahunan.
-            3. **Decision Support**: Membantu memprediksi beban kerja departemen imigrasi.
+            1. Mengumpulkan data SkillSelect ke satu tempat sehingga lebih mudah diakses.
+            2. Menunjukkan pola musiman dan tren sehingga Anda bisa melihat kapan pendaftaran meningkat atau menurun.
+            3. Memberi perkiraan yang membantu perencanaan (mis. kebutuhan tenaga kerja atau beban proses).
             """)
         
         st.subheader("📂 Data Source")
         st.info("Data bersumber dari **SkillSelect - Australian Government**. Mencakup Subclass **189, 190, dan 491**.")
 
-    st.subheader("🔄 How It Works")
+    st.subheader("🔄 Cara Kerja (singkat)")
     step1, step2 = st.columns(2)
-    step1.success("**1. ML Training**\n\nReal-time Prophet training for 490+ unique ANZSCO occupations.")
-    step2.success("**2. Visualization**\n\nGenerating interactive charts with automated data labeling.")
+    step1.success("**1. Latih model otomatis**\n\nModel dilatih secara otomatis dari data historis untuk membuat prediksi sederhana.")
+    step2.success("**2. Visualisasi yang mudah**\n\nGrafik interaktif membantu Anda memahami tren tanpa harus mengolah data manual.")
 
 
 # ==========================================
 # PAGE 2: TOP MARKET LEADERBOARD
 # ==========================================
 elif page == "🏆 Top Market Leaderboard":
-    st.title("🏆 Top Occupations Leaderboard")
-    st.markdown("Peringkat pekerjaan terpopuler dengan **Analisis Poin Mendalam**.")
+    st.title("🏆 Peringkat Pekerjaan Teratas")
+    st.markdown("Menampilkan pekerjaan dengan jumlah pendaftar terbanyak. Gunakan filter untuk melihat berdasarkan tipe visa, status, atau periode waktu.")
     
     if not df.empty:
         df['month_year'] = df['ds'].dt.strftime('%Y-%m') 
         all_months = sorted(df['month_year'].unique())
         
-        with st.expander("🎛️ Filter Parameters (Klik untuk membuka)", expanded=True):
+        with st.expander("🎛️ Pengaturan Filter (Klik untuk membuka)", expanded=True):
             f_col1, f_col2, f_col3 = st.columns(3)
             with f_col1:
                 all_visas = sorted(df['visa_type'].unique())
-                sel_visas = st.multiselect("Filter Visa Type:", all_visas, default=all_visas)
+                sel_visas = st.multiselect("Tipe Visa (pilih satu atau beberapa):", all_visas, default=all_visas)
             with f_col2:
                 all_status = sorted(df['eoi_status'].unique())
                 def_status = ['SUBMITTED'] if 'SUBMITTED' in all_status else all_status
-                sel_status = st.multiselect("Filter Status EOI:", all_status, default=def_status)
+                sel_status = st.multiselect("Status EOI (mis. SUBMITTED):", all_status, default=def_status)
             with f_col3:
-                sel_months = st.multiselect("Filter Bulan (Period):", all_months, default=all_months)
+                sel_months = st.multiselect("Periode (YYYY-MM) (pilih bulan):", all_months, default=all_months)
         
         df_filtered = df[
             (df['visa_type'].isin(sel_visas)) &
@@ -159,7 +161,7 @@ elif page == "🏆 Top Market Leaderboard":
         df_filtered['points_num'] = pd.to_numeric(df_filtered['points'], errors='coerce')
 
         if df_filtered.empty:
-            st.warning("Data tidak ditemukan. Coba cek filter bulan atau parameter lain.")
+            st.warning("Tidak ada data untuk kombinasi filter ini. Coba ubah filter.")
         else:
             df_ranking = df_filtered.groupby('occupation')['count_eois'].sum().reset_index()
             df_top15 = df_ranking.sort_values(by='count_eois', ascending=False).head(15)
@@ -188,7 +190,7 @@ elif page == "🏆 Top Market Leaderboard":
             df_display = pd.DataFrame(leaderboard_data)
 
             st.divider()
-            st.subheader("📊 Top 15 Demand Volume (Based on Filter)")
+            st.subheader("📊 Top 15 Pekerjaan (Berdasarkan Filter)")
             fig_bar = px.bar(
                 df_display, x='Total Demand', y='Occupation', orientation='h',
                 text='Total Demand', color='Total Demand',
@@ -197,7 +199,7 @@ elif page == "🏆 Top Market Leaderboard":
             fig_bar.update_layout(yaxis=dict(autorange="reversed"))
             st.plotly_chart(fig_bar, use_container_width=True)
 
-            st.subheader("📋 Point Analytics Breakdown")
+            st.subheader("📋 Rangkuman Poin")
             st.dataframe(
                 df_display.set_index('Occupation'),
                 column_config={
@@ -216,15 +218,15 @@ elif page == "🏆 Top Market Leaderboard":
 # PAGE 3: SPECIFIC FORECAST (REAL-TIME TRAINING)
 # ==========================================
 elif page == "🔮 Specific Forecast & Trends":
-    st.title("🔮 Specific Occupation Forecast")
-    st.markdown("Detail Prediksi & Breakdown per Satu Pekerjaan.")
+    st.title("🔮 Perkiraan untuk Pekerjaan Terpilih")
+    st.markdown("Pilih satu pekerjaan untuk melihat data historis, komposisi menurut tipe visa, dan prediksi 6 bulan ke depan. Anda tidak perlu paham teknis—cukup pilih dan klik tombol prediksi.")
 
     if df.empty:
         st.error("Data Master tidak termuat.")
     else:
         # 1. PILIH PEKERJAAN DARI DATA (BUKAN DARI FOLDER MODEL)
         available_occ = sorted(df['occupation'].unique())
-        selected_occ = st.selectbox("1️⃣ Pilih Pekerjaan (Occupation):", available_occ)
+        selected_occ = st.selectbox("Pilih pekerjaan yang ingin Anda lihat (contoh: Software Engineer):", available_occ)
         
         # Filter Data Khusus Pekerjaan Terpilih
         df_occ = df[df['occupation'] == selected_occ].copy()
@@ -232,19 +234,19 @@ elif page == "🔮 Specific Forecast & Trends":
         st.divider()
 
         # 2. FILTER & POINTS ANALYSIS
-        st.subheader("2️⃣ Analisis Data Historis (Breakdown)")
+        st.subheader("2️⃣ Analisis Data Historis — komposisi berdasarkan tipe visa")
         
         col_f1, col_f2, col_f3 = st.columns(3)
         with col_f1:
             all_visas = sorted(df_occ['visa_type'].unique())
-            sel_visas = st.multiselect("Filter Visa Type:", all_visas, default=all_visas, key="fore_visa")
+            sel_visas = st.multiselect("Tipe Visa (pilih):", all_visas, default=all_visas, key="fore_visa")
         with col_f2:
             all_status = sorted(df_occ['eoi_status'].unique())
             def_status = ['SUBMITTED'] if 'SUBMITTED' in all_status else all_status
-            sel_status = st.multiselect("Filter Status EOI:", all_status, default=def_status, key="fore_status")
+            sel_status = st.multiselect("Status EOI (pilih):", all_status, default=def_status, key="fore_status")
         with col_f3:
             all_points = sorted(df_occ['points'].unique())
-            sel_points = st.multiselect("Filter Range Poin:", all_points, default=all_points, key="fore_points")
+            sel_points = st.multiselect("Rentang Poin (pilih):", all_points, default=all_points, key="fore_points")
 
         df_filtered = df_occ[
             (df_occ['visa_type'].isin(sel_visas)) &
@@ -258,7 +260,7 @@ elif page == "🔮 Specific Forecast & Trends":
         c_chart, c_metric = st.columns([3, 1])
         with c_chart:
             if df_chart.empty:
-                st.warning("Data tidak ditemukan untuk filter ini.")
+                st.warning("Tidak ada data untuk pilihan filter ini. Coba opsi filter lain.")
             else:
                 fig_breakdown = px.bar(
                     df_chart, x='ds', y='count_eois', color='visa_type', 
@@ -268,15 +270,15 @@ elif page == "🔮 Specific Forecast & Trends":
                 st.plotly_chart(fig_breakdown, use_container_width=True)
         
         with c_metric:
-            st.metric("Total Filtered (Latest)", f"{int(total_filtered):,}")
-            st.info("Grafik di samping menampilkan data **REAL** sesuai filter.")
+            st.metric("Total Saat Ini (Filter)", f"{int(total_filtered):,}")
+            st.info("Grafik di samping menampilkan data nyata sesuai filter yang Anda pilih.")
 
         st.divider()
 
         # 3. AI FORECAST (REAL-TIME TRAINING)
-        st.subheader("3️⃣ AI Future Projection (Global Trend)")
+        st.subheader("3️⃣ Prediksi Masa Depan (6 bulan ke depan)")
         
-        if st.button("Generate AI Forecast 🚀", type="primary", use_container_width=True):
+        if st.button("Buat Prediksi AI (6 bulan) 🚀", type="primary", use_container_width=True):
             with st.spinner('Melatih model AI & menghitung proyeksi masa depan...'):
                 
                 # --- PERSIAPAN DATA ---
@@ -303,7 +305,7 @@ elif page == "🔮 Specific Forecast & Trends":
                             x=df_train['ds'], 
                             y=df_train['y'],
                             mode='markers+lines',
-                            name='Actual Data (History)',
+                            name='Data Aktual (Histori)',
                             line=dict(color='#00CC96', width=2),
                             marker=dict(size=6)
                         ))
@@ -313,7 +315,7 @@ elif page == "🔮 Specific Forecast & Trends":
                             x=forecast['ds'], 
                             y=forecast['yhat'], 
                             mode='lines', 
-                            name='AI Forecast (Future)', 
+                            name='Prediksi AI (Masa Depan)', 
                             line=dict(color='#636EFA', width=3)
                         ))
 
@@ -324,7 +326,7 @@ elif page == "🔮 Specific Forecast & Trends":
                             fill='toself', 
                             fillcolor='rgba(99, 110, 250, 0.2)', 
                             line=dict(color='rgba(0,0,0,0)'), 
-                            name='Confidence Interval'
+                            name='Interval Kepercayaan'
                         ))
                         
                         fig_ai.update_layout(

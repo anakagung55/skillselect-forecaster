@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
-import joblib
 import os
 import plotly.graph_objects as go
 import plotly.express as px
+from prophet import Prophet # Pastikan library ini ada
 
 # ==========================================
 # 1. KONFIGURASI HALAMAN
@@ -34,28 +34,26 @@ st.markdown("""
     """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. LOAD DATA (CACHE) - UPDATE PARQUET
+# 2. LOAD DATA (CACHE)
 # ==========================================
 @st.cache_data
 def get_master_data():
-    # Pastikan nama file sesuai dengan yang kamu upload ke GitHub
-    # Jika kamu taruh di root folder GitHub, cukup 'df_master.parquet'
-    file_path = 'df_master.parquet' 
-    
-    if os.path.exists(file_path):
-        # GANTI DARI READ_CSV KE READ_PARQUET
-        df = pd.read_parquet(file_path)
-        
-        # Pastikan format tanggal aman
-        df['ds'] = pd.to_datetime(df['ds'])
-        
-        # Konversi ke string agar filter aman
-        df['visa_type'] = df['visa_type'].astype(str)
-        df['eoi_status'] = df['eoi_status'].astype(str)
-        df['points'] = df['points'].astype(str)
-        return df
-    
-    return pd.DataFrame()
+    # Prioritaskan Parquet, fallback ke CSV/Zip
+    if os.path.exists('df_master.parquet'):
+        df = pd.read_parquet('df_master.parquet')
+    elif os.path.exists('df_master.zip'):
+        df = pd.read_csv('df_master.zip')
+    elif os.path.exists('data/df_master.csv'):
+        df = pd.read_csv('data/df_master.csv')
+    else:
+        return pd.DataFrame() # Return kosong jika file tidak ada
+
+    # Data Cleaning Ringan
+    df['ds'] = pd.to_datetime(df['ds'])
+    df['visa_type'] = df['visa_type'].astype(str)
+    df['eoi_status'] = df['eoi_status'].astype(str)
+    df['points'] = df['points'].astype(str)
+    return df
 
 df = get_master_data()
 
@@ -71,7 +69,7 @@ page = st.sidebar.radio("Navigation", [
 ])
 
 # ==========================================
-# PAGE 1: PROJECT OVERVIEW (PATEN)
+# PAGE 1: PROJECT OVERVIEW
 # ==========================================
 if page == "Project Overview":
     st.title("🚀 SkillSelect Intelligence Dashboard")
@@ -125,12 +123,12 @@ if page == "Project Overview":
 
     st.subheader("🔄 How It Works")
     step1, step2 = st.columns(2)
-    step1.success("**1. ML Training**\n\nPre-training Prophet models for 490+ unique ANZSCO occupations.")
+    step1.success("**1. ML Training**\n\nReal-time Prophet training for 490+ unique ANZSCO occupations.")
     step2.success("**2. Visualization**\n\nGenerating interactive charts with automated data labeling.")
 
 
 # ==========================================
-# PAGE 2: TOP MARKET LEADERBOARD (PATEN)
+# PAGE 2: TOP MARKET LEADERBOARD
 # ==========================================
 elif page == "🏆 Top Market Leaderboard":
     st.title("🏆 Top Occupations Leaderboard")
@@ -215,106 +213,107 @@ elif page == "🏆 Top Market Leaderboard":
 
 
 # ==========================================
-# PAGE 3: SPECIFIC FORECAST (UPDATED FIX)
+# PAGE 3: SPECIFIC FORECAST (REAL-TIME TRAINING)
 # ==========================================
 elif page == "🔮 Specific Forecast & Trends":
     st.title("🔮 Specific Occupation Forecast")
     st.markdown("Detail Prediksi & Breakdown per Satu Pekerjaan.")
 
-    # 1. PILIH PEKERJAAN
-    if not os.path.exists('models'):
-        st.error("⚠️ Folder 'models' tidak ditemukan.")
+    if df.empty:
+        st.error("Data Master tidak termuat.")
     else:
-        # Load daftar model yang tersedia
-        trained_models = [f.replace('prophet_', '').replace('.pkl', '') for f in os.listdir('models') if f.endswith('.pkl')]
+        # 1. PILIH PEKERJAAN DARI DATA (BUKAN DARI FOLDER MODEL)
+        available_occ = sorted(df['occupation'].unique())
+        selected_occ = st.selectbox("1️⃣ Pilih Pekerjaan (Occupation):", available_occ)
         
-        if not df.empty:
-            available_occ = [occ for occ in df['occupation'].unique() 
-                            if str(occ).replace(" ", "_").replace("/", "_").replace("(", "").replace(")", "").replace(",", "") in trained_models]
-            
-            selected_occ = st.selectbox("1️⃣ Pilih Pekerjaan (Occupation):", sorted(available_occ))
-            df_occ = df[df['occupation'] == selected_occ].copy()
-            
-            st.divider()
+        # Filter Data Khusus Pekerjaan Terpilih
+        df_occ = df[df['occupation'] == selected_occ].copy()
+        
+        st.divider()
 
-            # 2. FILTER & POINTS ANALYSIS
-            st.subheader("2️⃣ Analisis Data Historis (Breakdown)")
-            
-            col_f1, col_f2, col_f3 = st.columns(3)
-            with col_f1:
-                all_visas = sorted(df_occ['visa_type'].unique())
-                sel_visas = st.multiselect("Filter Visa Type:", all_visas, default=all_visas, key="fore_visa")
-            with col_f2:
-                all_status = sorted(df_occ['eoi_status'].unique())
-                def_status = ['SUBMITTED'] if 'SUBMITTED' in all_status else all_status
-                sel_status = st.multiselect("Filter Status EOI:", all_status, default=def_status, key="fore_status")
-            with col_f3:
-                all_points = sorted(df_occ['points'].unique())
-                sel_points = st.multiselect("Filter Range Poin:", all_points, default=all_points, key="fore_points")
+        # 2. FILTER & POINTS ANALYSIS
+        st.subheader("2️⃣ Analisis Data Historis (Breakdown)")
+        
+        col_f1, col_f2, col_f3 = st.columns(3)
+        with col_f1:
+            all_visas = sorted(df_occ['visa_type'].unique())
+            sel_visas = st.multiselect("Filter Visa Type:", all_visas, default=all_visas, key="fore_visa")
+        with col_f2:
+            all_status = sorted(df_occ['eoi_status'].unique())
+            def_status = ['SUBMITTED'] if 'SUBMITTED' in all_status else all_status
+            sel_status = st.multiselect("Filter Status EOI:", all_status, default=def_status, key="fore_status")
+        with col_f3:
+            all_points = sorted(df_occ['points'].unique())
+            sel_points = st.multiselect("Filter Range Poin:", all_points, default=all_points, key="fore_points")
 
-            df_filtered = df_occ[
-                (df_occ['visa_type'].isin(sel_visas)) &
-                (df_occ['eoi_status'].isin(sel_status)) &
-                (df_occ['points'].isin(sel_points))
-            ]
+        df_filtered = df_occ[
+            (df_occ['visa_type'].isin(sel_visas)) &
+            (df_occ['eoi_status'].isin(sel_status)) &
+            (df_occ['points'].isin(sel_points))
+        ]
 
-            df_chart = df_filtered.groupby(['ds', 'visa_type'])['count_eois'].sum().reset_index()
-            total_filtered = df_filtered.groupby('ds')['count_eois'].sum().iloc[-1] if not df_chart.empty else 0
+        df_chart = df_filtered.groupby(['ds', 'visa_type'])['count_eois'].sum().reset_index()
+        total_filtered = df_filtered.groupby('ds')['count_eois'].sum().iloc[-1] if not df_chart.empty else 0
 
-            c_chart, c_metric = st.columns([3, 1])
-            with c_chart:
-                if df_chart.empty:
-                    st.warning("Data tidak ditemukan.")
-                else:
-                    fig_breakdown = px.bar(
-                        df_chart, x='ds', y='count_eois', color='visa_type', 
-                        title=f"Komposisi EOI: {selected_occ}",
-                        template='plotly_dark', height=400
-                    )
-                    st.plotly_chart(fig_breakdown, use_container_width=True)
-            
-            with c_metric:
-                st.metric("Total Filtered (Latest)", f"{int(total_filtered):,}")
-                st.info("Grafik di samping menampilkan data **REAL** sesuai filter.")
+        c_chart, c_metric = st.columns([3, 1])
+        with c_chart:
+            if df_chart.empty:
+                st.warning("Data tidak ditemukan untuk filter ini.")
+            else:
+                fig_breakdown = px.bar(
+                    df_chart, x='ds', y='count_eois', color='visa_type', 
+                    title=f"Komposisi EOI: {selected_occ}",
+                    template='plotly_dark', height=400
+                )
+                st.plotly_chart(fig_breakdown, use_container_width=True)
+        
+        with c_metric:
+            st.metric("Total Filtered (Latest)", f"{int(total_filtered):,}")
+            st.info("Grafik di samping menampilkan data **REAL** sesuai filter.")
 
-            st.divider()
+        st.divider()
 
-            # 3. AI FORECAST
-            st.subheader("3️⃣ AI Future Projection (Global Trend)")
-            
-            if st.button("Generate AI Forecast 🚀", type="primary", use_container_width=True):
-                clean_name = selected_occ.replace(" ", "_").replace("/", "_").replace("(", "").replace(")", "").replace(",", "")
-                model_path = f'models/prophet_{clean_name}.pkl'
+        # 3. AI FORECAST (REAL-TIME TRAINING)
+        st.subheader("3️⃣ AI Future Projection (Global Trend)")
+        
+        if st.button("Generate AI Forecast 🚀", type="primary", use_container_width=True):
+            with st.spinner('Melatih model AI & menghitung proyeksi masa depan...'):
                 
-                if os.path.exists(model_path):
-                    with st.spinner('Menghitung proyeksi masa depan...'):
-                        model = joblib.load(model_path)
-                        future = model.make_future_dataframe(periods=3, freq='MS')
+                # --- PERSIAPAN DATA ---
+                # Menggunakan data total pekerjaan tersebut (Tanpa Filter Visa/Status agar prediksi global)
+                df_train = df_occ.groupby('ds')['count_eois'].sum().reset_index()
+                df_train.columns = ['ds', 'y']
+                
+                if len(df_train) < 2:
+                    st.error("Data historis terlalu sedikit (< 2 bulan) untuk melakukan prediksi AI.")
+                else:
+                    # --- TRAINING PROPHET (ON-THE-FLY) ---
+                    try:
+                        model = Prophet(seasonality_mode='multiplicative')
+                        model.fit(df_train)
+                        
+                        future = model.make_future_dataframe(periods=6, freq='MS') # Prediksi 6 bulan
                         forecast = model.predict(future)
                         
-                        # --- [FIXED] SIAPKAN DATA ACTUAL ---
-                        # Kita ambil TOTAL data historis untuk pekerjaan ini (Tanpa Filter)
-                        # Karena AI memprediksi Total Market
-                        df_hist_total = df_occ.groupby('ds')['count_eois'].sum().reset_index()
-                        
+                        # --- VISUALISASI ---
                         fig_ai = go.Figure()
                         
-                        # Trace A: Actual Data (Garis Hijau) -> KEMBALI ADA
+                        # Trace A: Actual Data
                         fig_ai.add_trace(go.Scatter(
-                            x=df_hist_total['ds'], 
-                            y=df_hist_total['count_eois'],
+                            x=df_train['ds'], 
+                            y=df_train['y'],
                             mode='markers+lines',
-                            name='Actual Data (Total)',
+                            name='Actual Data (History)',
                             line=dict(color='#00CC96', width=2),
                             marker=dict(size=6)
                         ))
 
-                        # Trace B: AI Forecast (Garis Biru)
+                        # Trace B: AI Forecast
                         fig_ai.add_trace(go.Scatter(
                             x=forecast['ds'], 
                             y=forecast['yhat'], 
                             mode='lines', 
-                            name='AI Forecast', 
+                            name='AI Forecast (Future)', 
                             line=dict(color='#636EFA', width=3)
                         ))
 
@@ -328,14 +327,20 @@ elif page == "🔮 Specific Forecast & Trends":
                             name='Confidence Interval'
                         ))
                         
-                        fig_ai.update_layout(title="Prediksi Tren Total (3 Bulan ke Depan)", template="plotly_dark", height=450, hovermode="x unified")
+                        fig_ai.update_layout(
+                            title=f"Prediksi Tren: {selected_occ}", 
+                            template="plotly_dark", 
+                            height=450, 
+                            hovermode="x unified"
+                        )
                         
                         st.plotly_chart(fig_ai, use_container_width=True)
                         
-                        res = forecast[['ds', 'yhat']].tail(3)
-                        res.columns = ['Bulan', 'Prediksi Total']
+                        # Tampilkan Tabel
+                        res = forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].tail(6)
+                        res.columns = ['Bulan', 'Prediksi', 'Batas Bawah', 'Batas Atas']
                         res['Bulan'] = res['Bulan'].dt.strftime('%B %Y')
-                        res['Prediksi Total'] = res['Prediksi Total'].astype(int)
                         st.table(res)
-        else:
-            st.error("Data Master tidak termuat.")
+                        
+                    except Exception as e:
+                        st.error(f"Gagal melatih model: {e}")
